@@ -8,8 +8,10 @@ import base64, json, os, sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-PLAYERS = ["Kyle Maughan", "Stewart Jensen", "Player 3", "Player 4",
-           "Player 5", "Player 6", "Player 7", "Player 8"]
+# Names as entered by the group in the live artifact. Slot 8 duplicates slot 2 -
+# preserved exactly as typed rather than guessed at; the app flags it in Setup.
+PLAYERS = ["Kyle Maughan", "Stewart Jensen", "Jacob Ferrell", "Jeff Vielstich",
+           "Jed Barney", "Eric Pehrson", "Burke Plummer", "Stewart Jensen"]
 
 ROUNDS = [
     ("Wednesday", "Aug 26", "Boulders Golf Club",     "South Course", ["1:00 pm", "1:10 pm"],   15),
@@ -30,22 +32,19 @@ def pairings(rnd):
 
 
 def initial_state():
-    players = [{"id": "p%d" % (i + 1), "name": n, "hi": ""} for i, n in enumerate(PLAYERS)]
+    players = [{"id": "p%d" % (i + 1), "name": n} for i, n in enumerate(PLAYERS)]
     rounds = []
-    for i, (day, date, club, course, tees, ctp) in enumerate(ROUNDS):
+    for i, (day, date, club, course, times, ctp) in enumerate(ROUNDS):
         pids = [p["id"] for p in players]
         rounds.append({
             "id": "r%d" % (i + 1), "n": i + 1,
             "day": day, "date": date, "club": club, "course": course,
-            "tees": tees, "ctpHole": ctp, "ctp": "",
-            "rating": "", "slope": "",
-            "si": list(range(1, 19)),
-            "pars": [4] * 18,
+            "times": times, "ctpHole": ctp, "ctp": "",
             "matches": [{"a": pids[a], "b": pids[b]} for a, b in pairings(i)],
-            "scores": {pid: [None] * 18 for pid in pids},
-            "ch": {},
+            "gross": {}, "points": {},
         })
-    return {"rev": 1, "players": players, "rounds": rounds}
+    # ahead of any state the previous build may have left behind
+    return {"rev": 100, "players": players, "rounds": rounds}
 
 
 def main():
