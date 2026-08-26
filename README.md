@@ -31,7 +31,9 @@ maximum is flagged in red but still accepted; nothing is truncated.
   nothing entered read `—` rather than 0.
 - **Rules** — format, points table, local rules, pace of play, prizes, CTP holes.
 - **Setup** — player names, matchups per round, CTP hole. Matchups are seeded
-  with a round-robin so nobody repeats an opponent across the six rounds.
+  with a round-robin so nobody repeats an opponent across the six rounds. Each
+  round warns if a player lands in two matches or none, which is easy to do
+  halfway through re-pairing a round.
 
 Two players sharing a name are flagged in Setup: standings track each slot
 separately, so duplicates split a player's points across two rows.
@@ -45,8 +47,14 @@ hard-coded offsets.
 `index.html` is generated — edit `src/shell.html` and rebuild:
 
 ```
-python3 build.py
+python3 build.py                          # fresh tournament
+python3 build.py --state live_state.json  # keep the live artifact's data
 ```
+
+Republishing over a live artifact replaces its embedded state, so before
+shipping a code change pull the current state out of the published page
+(`<script id="pga-state">`) and pass it to `--state`. The rev is bumped so the
+rebuilt page wins over whatever the previous build left behind.
 
 The page carries a base64 copy of its own template so it can republish itself
 with new state. `build.py` substitutes the two markers exactly once, asserts the

@@ -481,6 +481,26 @@ function dupeNames(){
   });
   return dupes;
 }
+/* Every player should appear in exactly one match per round. Catches a
+   half-finished edit that would otherwise quietly mis-score the round. */
+function badMatchups(r){
+  var seen={}, i;
+  r.matches.forEach(function(m){
+    seen[m.a]=(seen[m.a]||0)+1;
+    seen[m.b]=(seen[m.b]||0)+1;
+  });
+  var twice=[], missing=[];
+  for(i=0;i<ST.players.length;i++){
+    var id=ST.players[i].id, n=seen[id]||0;
+    if(n>1) twice.push(esc(pname(id)));
+    else if(n===0) missing.push(esc(pname(id)));
+  }
+  if(!twice.length && !missing.length) return "";
+  var out="";
+  if(twice.length) out+="<b>"+twice.join(", ")+"</b> "+(twice.length>1?"are":"is")+" in more than one match. ";
+  if(missing.length) out+="<b>"+missing.join(", ")+"</b> "+(missing.length>1?"are":"is")+" not in a match. ";
+  return out+"Each player should appear exactly once.";
+}
 function viewSetup(){
   var dupes=dupeNames(), anyDupe=Object.keys(dupes).length>0;
   var h='<div class="sect"><div class="sect-h"><h2>Players</h2><div class="rule"></div></div><div class="card">';
@@ -504,6 +524,8 @@ function viewSetup(){
         '<span class="v">v</span><select class="t" data-mp="'+r.id+'|'+mi+'|b">'+pOptions(m.b)+'</select></div>';
     });
     h+='</div>';
+    var bad=badMatchups(r);
+    if(bad) h+='<div class="warn">'+bad+'</div>';
     h+='<div class="g2"><div><label class="f">CTP hole</label>'+
       '<input class="t num" inputmode="numeric" maxlength="2" value="'+esc(r.ctpHole)+'" data-ct="'+r.id+'"></div></div>';
     h+='</div></details>';

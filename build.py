@@ -4,7 +4,7 @@
 The page carries a base64 copy of its own template so it can republish
 itself with new state; markers are substituted exactly once here.
 """
-import base64, json, os, sys
+import argparse, base64, json, os, sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -47,13 +47,27 @@ def initial_state():
 
 
 def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--state", metavar="FILE",
+                    help="embed this state JSON instead of a fresh tournament. Use to carry "
+                         "the live artifact's data across a code change; rev is bumped so the "
+                         "rebuilt page wins over anything the old build left behind.")
+    opts = ap.parse_args()
+
     shell = open(os.path.join(ROOT, "src/shell.html"), encoding="utf-8").read()
     for mark in ("__SHELL_B64__", "__STATE_JSON__"):
         if shell.count(mark) != 1:
             sys.exit("marker %s appears %d times, expected 1" % (mark, shell.count(mark)))
 
     b64 = base64.b64encode(shell.encode("ascii")).decode("ascii")
-    state = json.dumps(initial_state(), separators=(",", ":")).replace("<", "\\u003c")
+
+    if opts.state:
+        data = json.load(open(opts.state, encoding="utf-8"))
+        data["rev"] = int(data.get("rev", 0)) + 1
+        print("embedding %s (rev %d, %d players)" % (opts.state, data["rev"], len(data["players"])))
+    else:
+        data = initial_state()
+    state = json.dumps(data, separators=(",", ":")).replace("<", "\\u003c")
 
     out = shell.split("__SHELL_B64__")
     out = b64.join(out)
