@@ -23,7 +23,9 @@ maximum is flagged in red but still accepted; nothing is truncated.
 ## Using it
 
 - **Rounds** — the only place scores go in. Each round collapses to a header;
-  the first round still missing entries opens by default. Match winners and the
+  the first round still missing entries opens by default. Every matchup is its
+  own bordered card with a `vs` divider, so the two players in a pair read as a
+  pair rather than running together with the next one. Match winners and the
   round's status update as you type. Closest to the pin is set per round.
 - **Standings** — running points by round, total, and total gross. Rounds with
   nothing entered read `—` rather than 0.
@@ -33,6 +35,10 @@ maximum is flagged in red but still accepted; nothing is truncated.
 
 Two players sharing a name are flagged in Setup: standings track each slot
 separately, so duplicates split a player's points across two rows.
+
+The Gross/Pts column labels live in the first matchup card's header rather than
+in a row above the cards, so they share the entry grid and stay aligned without
+hard-coded offsets.
 
 ## Development
 

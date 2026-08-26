@@ -8,9 +8,8 @@ import base64, json, os, sys
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# Names as entered by the group in the live artifact. Slot 8 duplicates slot 2 -
-# preserved exactly as typed rather than guessed at; the app flags it in Setup.
-PLAYERS = ["Kyle Maughan", "Stewart Jensen", "Jacob Ferrell", "Jeff Vielstich",
+# Names as entered by the group in the live artifact.
+PLAYERS = ["Kyle Maughan", "Scott Maughn", "Jacob Ferrell", "Jeff Vielstich",
            "Jed Barney", "Eric Pehrson", "Burke Plummer", "Stewart Jensen"]
 
 ROUNDS = [
@@ -44,7 +43,7 @@ def initial_state():
             "gross": {}, "points": {},
         })
     # ahead of any state the previous build may have left behind
-    return {"rev": 100, "players": players, "rounds": rounds}
+    return {"rev": 200, "players": players, "rounds": rounds}
 
 
 def main():

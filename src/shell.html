@@ -156,15 +156,18 @@ table.board .tot{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size
 .rnd-t span{font-size:.73rem;color:var(--ink3)}
 
 /* match block + points entry */
-.mblk{border-bottom:1px solid var(--line-soft)}
-.mblk:last-of-type{border-bottom:0}
-.mblk-h{display:flex;align-items:center;gap:7px;padding:8px 14px 2px}
-.mblk-h span{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.mblk{margin:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--raise);overflow:hidden}
+.mblk-h{display:grid;grid-template-columns:1fr 3.5rem 3.5rem;gap:8px;align-items:center;
+  padding:6px 10px;background:var(--surface2);border-bottom:1px solid var(--line)}
+.mblk-h .ttl{display:flex;align-items:center;gap:7px;min-width:0;
+  font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.mblk-h .lbl{font-size:.55rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);font-weight:700;text-align:center}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:9px;padding:0 10px}
+.vs i{height:1px;background:var(--line-soft);display:block}
+.vs b{font-size:.56rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
 .mblk-h em{font-style:normal;font-size:.66rem;font-weight:700;color:var(--sun);background:var(--sun-soft);
   border:1px solid var(--sun-line);border-radius:99px;padding:1px 8px;margin-left:auto}
-.pent{display:grid;grid-template-columns:1fr 3.5rem 3.5rem;gap:8px;align-items:center;padding:7px 14px}
-.pent.head{padding-top:0;padding-bottom:3px}
-.pent.head span{font-size:.55rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);font-weight:700;text-align:center}
+.pent{display:grid;grid-template-columns:1fr 3.5rem 3.5rem;gap:8px;align-items:center;padding:7px 10px}
 .pent .who{min-width:0}
 .pent .who b{display:block;font-size:.88rem;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pent .who span{font-size:.68rem;color:var(--ink3);font-family:"IBM Plex Mono",monospace}
@@ -435,13 +438,15 @@ function viewRounds(){
       '<span>'+esc(r.club)+' &middot; '+esc(r.times.join(" / "))+'</span></div>'+
       (full?'<span class="pill done">Final</span>':started?'<span class="pill live">In progress</span>':'<span class="pill">Upcoming</span>')+
       '</summary>';
-    h+='<div class="pent head"><span></span><span>Gross</span><span>Pts</span></div>';
     r.matches.forEach(function(m,mi){
       var res=matchResult(r,m);
       var badge = res==="tie" ? "Tied" : res ? esc(pname(res==="a"?m.a:m.b).split(" ")[0])+" won" : "";
-      h+='<div class="mblk"><div class="mblk-h"><span>Match '+(mi+1)+'</span>'+
-        (badge?'<em>'+badge+'</em>':'')+'</div>';
+      h+='<div class="mblk"><div class="mblk-h"><span class="ttl">Match '+(mi+1)+
+        (badge?'<em>'+badge+'</em>':'')+'</span>'+
+        (mi===0?'<span class="lbl">Gross</span><span class="lbl">Pts</span>':'<span></span><span></span>')+
+        '</div>';
       [m.a,m.b].forEach(function(pid,side){
+        if(side===1) h+='<div class="vs"><i></i><b>vs</b><i></i></div>';
         var g=val(r,"gross",pid), p=val(r,"points",pid);
         var winner = res && res!=="tie" && ((res==="a"&&side===0)||(res==="b"&&side===1));
         h+='<div class="pent"><div class="who"><b'+(winner?' class="w"':'')+'>'+esc(pname(pid))+'</b></div>'+
@@ -625,12 +630,12 @@ function refreshRoundBadges(rid){
   var blocks=card.querySelectorAll(".mblk");
   r.matches.forEach(function(m,mi){
     var blk=blocks[mi]; if(!blk) return;
-    var res=matchResult(r,m), hd=blk.querySelector(".mblk-h"), old=hd.querySelector("em");
+    var res=matchResult(r,m), ttl=blk.querySelector(".mblk-h .ttl"), old=ttl.querySelector("em");
     if(old) old.remove();
     if(res){
       var em=document.createElement("em");
       em.textContent = res==="tie" ? "Tied" : pname(res==="a"?m.a:m.b).split(" ")[0]+" won";
-      hd.appendChild(em);
+      ttl.appendChild(em);
     }
     var names=blk.querySelectorAll(".who b");
     if(names[0]) names[0].className = (res==="a")?"w":"";
