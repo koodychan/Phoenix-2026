@@ -64,3 +64,14 @@ entities in markup and `\uXXXX` escapes in JS strings).
 
 Editing `src/shell.html` by script: assert on every replacement. A silently
 missed anchor produces a page that passes `node --check` and fails at runtime.
+
+Deleting a CSS rule by regex needs the same care. A rule whose declarations wrap
+onto a second line will leave that line orphaned, and an orphaned declaration
+swallows the *next* rule into an invalid selector — the stylesheet still loads,
+so nothing errors, the following rule just never applies. `tools/csscheck.js`
+catches this by diffing every selector in the source against the CSSOM the
+browser actually parsed:
+
+```
+node tools/csscheck.js
+```

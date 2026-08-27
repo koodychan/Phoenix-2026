@@ -203,8 +203,8 @@ select.t{-webkit-appearance:none;appearance:none;background-image:linear-gradien
 .acc[open]>summary{border-bottom:1px solid var(--line-soft)}
 .acc-body{padding:12px 14px;display:flex;flex-direction:column;gap:13px}
 .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
-  text-align:center;padding:4px 2px;font-family:"IBM Plex Mono",monospace;font-size:.76rem;font-weight:600}
-.mset{display:grid;grid-template-columns:1fr 1.4rem 1fr;gap:6px;align-items:center;margin-bottom:7px}
+.mset{display:grid;grid-template-columns:1fr 1.7rem 1fr;gap:6px;align-items:center;margin-bottom:8px}
+.mset select{min-width:0}
 .mset .v{text-align:center;font-size:.62rem;color:var(--ink3);font-weight:700;letter-spacing:.06em}
 .btn{border:1px solid var(--line);background:var(--surface2);border-radius:var(--r-sm);padding:9px 14px;
   font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
@@ -521,7 +521,7 @@ function viewSetup(){
     h+='<div>';
     r.matches.forEach(function(m,mi){
       h+='<div class="mset"><select class="t" data-mp="'+r.id+'|'+mi+'|a">'+pOptions(m.a)+'</select>'+
-        '<span class="v">v</span><select class="t" data-mp="'+r.id+'|'+mi+'|b">'+pOptions(m.b)+'</select></div>';
+        '<span class="v">vs</span><select class="t" data-mp="'+r.id+'|'+mi+'|b">'+pOptions(m.b)+'</select></div>';
     });
     h+='</div>';
     var bad=badMatchups(r);
