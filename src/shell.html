@@ -129,7 +129,6 @@ table.board .rp.zero{color:var(--ink3);opacity:.5}
 table.board .tot{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:.98rem}
 .sticky-l{position:sticky;left:0;background:var(--surface);z-index:1}
 .sticky-r{position:sticky;right:0;background:var(--surface);z-index:1;box-shadow:-9px 0 9px -9px rgba(0,0,0,.20)}
-@media (max-width:559px){ .hide-sm{display:none} }
 .money{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:9px}
 .money div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 12px}
 .money b{display:block;font-family:"IBM Plex Mono",monospace;font-size:1.24rem;font-weight:600;color:var(--sun)}
@@ -157,7 +156,7 @@ table.board .tot{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size
 
 /* match block + points entry */
 .mblk{margin:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--raise);overflow:hidden}
-.mblk-h{display:grid;grid-template-columns:1fr 3.5rem 3.5rem;gap:8px;align-items:center;
+.mblk-h{display:grid;grid-template-columns:1fr 3.5rem;gap:8px;align-items:center;
   padding:6px 10px;background:var(--surface2);border-bottom:1px solid var(--line)}
 .mblk-h .ttl{display:flex;align-items:center;gap:7px;min-width:0;
   font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700}
@@ -167,7 +166,7 @@ table.board .tot{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size
 .vs b{font-size:.56rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
 .mblk-h em{font-style:normal;font-size:.66rem;font-weight:700;color:var(--sun);background:var(--sun-soft);
   border:1px solid var(--sun-line);border-radius:99px;padding:1px 8px;margin-left:auto}
-.pent{display:grid;grid-template-columns:1fr 3.5rem 3.5rem;gap:8px;align-items:center;padding:7px 10px}
+.pent{display:grid;grid-template-columns:1fr 3.5rem;gap:8px;align-items:center;padding:7px 10px}
 .pent .who{min-width:0}
 .pent .who b{display:block;font-size:.88rem;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pent .who span{font-size:.68rem;color:var(--ink3);font-family:"IBM Plex Mono",monospace}
@@ -276,10 +275,7 @@ function rIndex(id){ for(var i=0;i<ST.rounds.length;i++) if(ST.rounds[i].id===id
 function val(r,field,pid){ return (r[field] && has(r[field][pid])) ? num(r[field][pid]) : null; }
 function pts(r,pid){ var v=val(r,"points",pid); return v===null?0:v; }
 function anyEntered(r){
-  for(var i=0;i<ST.players.length;i++){
-    var id=ST.players[i].id;
-    if(val(r,"points",id)!==null || val(r,"gross",id)!==null) return true;
-  }
+  for(var i=0;i<ST.players.length;i++) if(val(r,"points",ST.players[i].id)!==null) return true;
   return false;
 }
 function allEntered(r){
@@ -295,9 +291,7 @@ function matchResult(r,m){
 function standings(){
   var rows=ST.players.map(function(p){
     var per=ST.rounds.map(function(r){ return pts(r,p.id); });
-    var gr=0, gn=0;
-    ST.rounds.forEach(function(r){ var g=val(r,"gross",p.id); if(g!==null){ gr+=g; gn++; } });
-    return {p:p, per:per, tot:per.reduce(function(a,b){return a+b;},0), gross:gr, grossRounds:gn};
+    return {p:p, per:per, tot:per.reduce(function(a,b){return a+b;},0)};
   });
   rows.sort(function(x,y){ return y.tot-x.tot || String(x.p.name).localeCompare(String(y.p.name)); });
   var pos=0, prev=null;
@@ -393,15 +387,14 @@ function viewStandings(){
      '<div class="card scroll-x"><table class="board"><thead><tr>'+
      '<th class="sticky-l l" colspan="2">Player</th>';
   for(var i=1;i<=6;i++) h+='<th>R'+i+'</th>';
-  h+='<th class="hide-sm">Gross</th><th class="sticky-r">Total</th></tr></thead><tbody>';
+  h+='<th class="sticky-r">Total</th></tr></thead><tbody>';
   rows.forEach(function(r){
     h+='<tr><td class="pos sticky-l mono">'+r.pos+'</td><td class="nm l">'+esc(r.p.name)+'</td>';
     r.per.forEach(function(v,i){
       var g=val(ST.rounds[i],"points",r.p.id);
       h+='<td class="rp'+(g===null?" zero":"")+'">'+(g===null?"\u2014":fmtPts(v))+'</td>';
     });
-    h+='<td class="rp hide-sm">'+(r.grossRounds?r.gross:"\u2014")+'</td>'+
-       '<td class="tot sticky-r">'+fmtPts(r.tot)+'</td></tr>';
+    h+='<td class="tot sticky-r">'+fmtPts(r.tot)+'</td></tr>';
   });
   h+='</tbody></table></div></div>';
   var ctpWins={};
@@ -443,15 +436,13 @@ function viewRounds(){
       var badge = res==="tie" ? "Tied" : res ? esc(pname(res==="a"?m.a:m.b).split(" ")[0])+" won" : "";
       h+='<div class="mblk"><div class="mblk-h"><span class="ttl">Match '+(mi+1)+
         (badge?'<em>'+badge+'</em>':'')+'</span>'+
-        (mi===0?'<span class="lbl">Gross</span><span class="lbl">Pts</span>':'<span></span><span></span>')+
+        (mi===0?'<span class="lbl">Pts</span>':'<span></span>')+
         '</div>';
       [m.a,m.b].forEach(function(pid,side){
         if(side===1) h+='<div class="vs"><i></i><b>vs</b><i></i></div>';
-        var g=val(r,"gross",pid), p=val(r,"points",pid);
+        var p=val(r,"points",pid);
         var winner = res && res!=="tie" && ((res==="a"&&side===0)||(res==="b"&&side===1));
         h+='<div class="pent"><div class="who"><b'+(winner?' class="w"':'')+'>'+esc(pname(pid))+'</b></div>'+
-          '<input class="pin mono" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="'+(g===null?"":g)+
-            '" data-g="'+r.id+'|'+pid+'" aria-label="'+esc(pname(pid))+' gross score, round '+r.n+'">'+
           '<input class="pin mono'+(p!==null&&p>12.5?" over":"")+'" inputmode="decimal" maxlength="5" value="'+(p===null?"":p)+
             '" data-p="'+r.id+'|'+pid+'" aria-label="'+esc(pname(pid))+' points, round '+r.n+'">'+
           '</div>';
@@ -593,9 +584,8 @@ document.addEventListener("click",function(ev){
   if(!t) return;
   if(t.hasAttribute("data-tab")){ UI.tab=t.getAttribute("data-tab"); saveUI(); render(); window.scrollTo(0,0); }
   else if(t.hasAttribute("data-reset")){
-    if(!window.confirm("Clear every gross score and point total? This cannot be undone.")) return;
+    if(!window.confirm("Clear every point total? This cannot be undone.")) return;
     ST.rounds.forEach(function(r,i){
-      setPath(["rounds",i,"gross"],{});
       setPath(["rounds",i,"points"],{});
       setPath(["rounds",i,"ctp"],"");
     });
@@ -604,13 +594,6 @@ document.addEventListener("click",function(ev){
 });
 document.addEventListener("input",function(ev){
   var el=ev.target, a;
-  if(el.hasAttribute("data-g")){
-    a=el.getAttribute("data-g").split("|");
-    var g=el.value.replace(/[^0-9]/g,"").slice(0,3);
-    if(el.value!==g) el.value=g;
-    setPath(["rounds",rIndex(a[0]),"gross",a[1]], g===""?null:parseInt(g,10));
-    renderLead(); return;
-  }
   if(el.hasAttribute("data-p")){
     a=el.getAttribute("data-p").split("|");
     var p=el.value.replace(/[^0-9.]/g,"");
