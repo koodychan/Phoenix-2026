@@ -6,15 +6,11 @@ phones against the same live state.
 
 ## What gets entered
 
-Two plain number fields per player per round, and nothing else:
+One number per player per round: the points they earned for the competition.
 
-| Field | Meaning |
-|---|---|
-| **Gross** | The player's gross score for the round |
-| **Pts** | Points earned for the competition that round |
-
-Course handicaps, pops and hole-by-hole match play are worked out on the course,
-not in the app. The app records the result and does the running tally.
+Gross scores, course handicaps, pops and hole-by-hole match play are all worked
+out on the course, not in the app. The app records the result and does the
+running tally.
 
 Points follow the tournament sheet — 1 per hole won, +0.5 for the match win,
 0.25 each on a tie. A points entry above the sheet's stated 12.5 per-round
@@ -26,9 +22,10 @@ maximum is flagged in red but still accepted; nothing is truncated.
   the first round still missing entries opens by default. Every matchup is its
   own bordered card with a `vs` divider, so the two players in a pair read as a
   pair rather than running together with the next one. Match winners and the
-  round's status update as you type. Closest to the pin is set per round.
-- **Standings** — running points by round, total, and total gross. Rounds with
-  nothing entered read `—` rather than 0.
+  round's status follow from the points as you type. Closest to the pin is set
+  per round.
+- **Standings** — running points by round and total. Rounds with nothing
+  entered read `—` rather than 0.
 - **Rules** — format, points table, local rules, pace of play, prizes, CTP holes.
 - **Setup** — player names, matchups per round, CTP hole. Each round warns if a
   player lands in two matches or none, which is easy to do halfway through
@@ -42,8 +39,8 @@ that ordering is preserved in the match list but is not labelled in the app.
 Two players sharing a name are flagged in Setup: standings track each slot
 separately, so duplicates split a player's points across two rows.
 
-The Gross/Pts column labels live in the first matchup card's header rather than
-in a row above the cards, so they share the entry grid and stay aligned without
+The Pts column label lives in the first matchup card's header rather than in a
+row above the cards, so it shares the entry grid and stays aligned without
 hard-coded offsets.
 
 ## Development
