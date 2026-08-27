@@ -36,9 +36,8 @@ maximum is flagged in red but still accepted; nothing is truncated.
 
 Matchups come from the group's own schedule sheet (`MATCHUPS` in `build.py`),
 which is a 6-of-7 round robin: 24 distinct pairings, no repeats, every player
-facing six different opponents. Within a round the first two matches are Group 1
-(earlier tee time) and the last two are Group 2, and the Rounds tab labels them
-with the tee time.
+facing six different opponents. The sheet groups each round into two tee times;
+that ordering is preserved in the match list but is not labelled in the app.
 
 Two players sharing a name are flagged in Setup: standings track each slot
 separately, so duplicates split a player's points across two rows.
