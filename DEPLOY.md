@@ -18,9 +18,13 @@ already created (see the SQL in the project history). The row id is `pga2026`.
 Set two environment variables:
 
 ```
-SUPABASE_URL = https://<project-ref>.supabase.co
-SUPABASE_KEY = <publishable / anon key>
+SUPABASE_URL = https://xmodiyuitsfsizcdfzgf.supabase.co
+SUPABASE_KEY = <the project's anon key>
 ```
+
+`SUPABASE_KEY` takes the anon key (the `eyJ...` JWT with `"role":"anon"`, from
+Settings → API). The newer `sb_publishable_...` key works against PostgREST too;
+either is fine, but only the anon key is used here.
 
 Both are read only by the serverless functions in `api/`. **Neither is committed
 to the repo, and neither reaches the browser** — the page talks only to
