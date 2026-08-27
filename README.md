@@ -27,9 +27,26 @@ maximum is flagged in red but still accepted; nothing is truncated.
 - **Standings** — running points by round and total. Rounds with nothing
   entered read `—` rather than 0.
 - **Rules** — format, points table, local rules, pace of play, prizes, CTP holes.
-- **Setup** — player names, matchups per round, CTP hole. Each round warns if a
+- **Setup** — password protected. Player names, matchups per round, CTP hole,
+  and the Clear-all-scores button all sit behind it. Each round warns if a
   player lands in two matches or none, which is easy to do halfway through
   re-pairing a round.
+
+The Setup password is a **speed bump, not security**. The page is client-side,
+so the check and its digest both ship to the browser and anyone willing to open
+dev tools can get past it. It exists to stop accidental edits by the group, and
+scoring is deliberately left open to everyone.
+
+The stored value is a djb2 digest rather than the literal password, so the word
+is not sitting in the page source. Input is trimmed and lower-cased before
+hashing, so a phone auto-capitalising the first letter still gets in. Unlocking
+is remembered per browser in `localStorage`; a Lock button in the Players
+heading clears it. To change the password, hash the new one and replace
+`SETUP_PW`:
+
+```
+node -e 'var s="newpass",h=5381;for(var i=0;i<s.length;i++)h=((h*33)^s.charCodeAt(i))>>>0;console.log(h.toString(36))'
+```
 
 Matchups come from the group's own schedule sheet (`MATCHUPS` in `build.py`),
 which is a 6-of-7 round robin: 24 distinct pairings, no repeats, every player

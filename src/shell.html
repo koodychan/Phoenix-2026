@@ -214,6 +214,20 @@ select.t{-webkit-appearance:none;appearance:none;background-image:linear-gradien
 .warn b{color:var(--clay)}
 .ro{background:var(--clay-soft);border:1px solid var(--clay);border-radius:var(--r-sm);padding:9px 12px;font-size:.79rem;color:var(--ink2);margin-top:10px}
 
+/* setup lock */
+.lock{max-width:21rem;margin:38px auto;text-align:center;padding:26px 20px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.lock .ico{width:38px;height:38px;margin:0 auto 12px;border-radius:50%;background:var(--surface2);
+  border:1px solid var(--line);display:grid;place-items:center}
+.lock .ico svg{width:17px;height:17px;stroke:var(--ink3);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.lock h2{font-family:"Bricolage Grotesque",sans-serif;font-size:1.02rem;font-weight:700;margin:0 0 5px;
+  letter-spacing:-.01em;color:var(--ink)}
+.lock p{font-size:.81rem;color:var(--ink3);margin:0 0 15px;line-height:1.45}
+.lock .row{display:flex;gap:7px}
+.lock .err{color:var(--clay);font-size:.78rem;font-weight:600;margin:11px 0 0}
+.lockbtn{border:1px solid var(--line);background:var(--surface2);border-radius:99px;
+  padding:3px 11px;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+
 /* rules */
 .doc{font-size:.89rem;color:var(--ink2);max-width:62ch}
 .doc h3{font-family:"Bricolage Grotesque",sans-serif;font-size:.96rem;color:var(--ink);margin:0 0 6px}
@@ -492,9 +506,45 @@ function badMatchups(r){
   if(missing.length) out+="<b>"+missing.join(", ")+"</b> "+(missing.length>1?"are":"is")+" not in a match. ";
   return out+"Each player should appear exactly once.";
 }
+/* Setup gate. A speed bump against accidental edits from inside the group, not
+   security: the page is client-side, so this check and its digest both ship to
+   the browser. Input is trimmed and lower-cased before hashing, so a phone
+   auto-capitalising the first letter still gets in. */
+var SETUP_PW="31vs9r";
+var UNLOCKED=false;
+try{ UNLOCKED = localStorage.getItem("pga.setup")==="1"; }catch(e){}
+
+function pwHash(str){
+  var h=5381;
+  for(var i=0;i<str.length;i++) h=((h*33)^str.charCodeAt(i))>>>0;
+  return h.toString(36);
+}
+function setUnlocked(v){
+  UNLOCKED=v;
+  try{ if(v) localStorage.setItem("pga.setup","1"); else localStorage.removeItem("pga.setup"); }catch(e){}
+}
+function tryUnlock(){
+  var el=document.getElementById("pw"); if(!el) return;
+  if(pwHash(el.value.trim().toLowerCase())===SETUP_PW){ setUnlocked(true); render(); return; }
+  var err=document.getElementById("pwerr");
+  if(err) err.textContent="That is not the password.";
+  el.value=""; el.focus();
+}
+function viewLock(){
+  return '<div class="lock"><div class="ico"><svg viewBox="0 0 24 24">'+
+    '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>'+
+    '<h2>Setup is locked</h2>'+
+    '<p>Players, matchups and CTP holes sit behind the password so they are not changed by accident.</p>'+
+    '<div class="row"><input class="t" id="pw" type="password" placeholder="Password" '+
+      'autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off">'+
+      '<button class="btn" data-unlock="1">Unlock</button></div>'+
+    '<p class="err" id="pwerr"></p></div>';
+}
 function viewSetup(){
+  if(!UNLOCKED) return viewLock();
   var dupes=dupeNames(), anyDupe=Object.keys(dupes).length>0;
-  var h='<div class="sect"><div class="sect-h"><h2>Players</h2><div class="rule"></div></div><div class="card">';
+  var h='<div class="sect"><div class="sect-h"><h2>Players</h2><div class="rule"></div>'+
+    '<button class="lockbtn" data-lock="1">Lock</button></div><div class="card">';
   ST.players.forEach(function(p,i){
     var isDupe=dupes[String(p.name||"").trim().toLowerCase()];
     h+='<div class="prow n2'+(isDupe?" dupe":"")+'"><span class="idx mono">'+(i+1)+'</span>'+
@@ -576,12 +626,15 @@ function render(){
   else h+=viewSetup();
   v.innerHTML=h;
   if(READONLY) v.querySelectorAll("input,select").forEach(function(el){ el.disabled=true; });
+  var pw=document.getElementById("pw"); if(pw) pw.focus();
 }
 
 /* ============ events ============ */
 document.addEventListener("click",function(ev){
-  var t=ev.target.closest?ev.target.closest("[data-tab],[data-reset]"):null;
+  var t=ev.target.closest?ev.target.closest("[data-tab],[data-reset],[data-unlock],[data-lock]"):null;
   if(!t) return;
+  if(t.hasAttribute("data-unlock")){ tryUnlock(); return; }
+  if(t.hasAttribute("data-lock")){ setUnlocked(false); render(); window.scrollTo(0,0); return; }
   if(t.hasAttribute("data-tab")){ UI.tab=t.getAttribute("data-tab"); saveUI(); render(); window.scrollTo(0,0); }
   else if(t.hasAttribute("data-reset")){
     if(!window.confirm("Clear every point total? This cannot be undone.")) return;
@@ -591,6 +644,9 @@ document.addEventListener("click",function(ev){
     });
     render();
   }
+});
+document.addEventListener("keydown",function(ev){
+  if(ev.key==="Enter" && ev.target.id==="pw"){ ev.preventDefault(); tryUnlock(); }
 });
 document.addEventListener("input",function(ev){
   var el=ev.target, a;
