@@ -22,12 +22,30 @@ ROUNDS = [
 ]
 
 
-def pairings(rnd):
-    """Circle-method round robin: 8 players, a different opponent each round."""
-    others = [1, 2, 3, 4, 5, 6, 7]
-    rot = others[rnd:] + others[:rnd]
-    order = [0] + rot
-    return [(order[i], order[7 - i]) for i in range(4)]
+# The group's own schedule sheet. Within each round the first two matches are
+# Group 1 (earlier tee time) and the last two are Group 2 (later tee time).
+SHORT = {"Kyle": "p1", "Scott": "p2", "Jacob": "p3", "Jeff": "p4",
+         "Jed": "p5", "Eric": "p6", "Burke": "p7", "Stu": "p8"}
+
+MATCHUPS = {
+    1: [("Stu", "Scott"), ("Jed", "Kyle"),   ("Eric", "Jeff"),   ("Burke", "Jacob")],
+    2: [("Eric", "Burke"), ("Jeff", "Jacob"), ("Stu", "Jed"),     ("Scott", "Kyle")],
+    3: [("Stu", "Kyle"),  ("Scott", "Jed"),  ("Eric", "Jacob"),  ("Jeff", "Burke")],
+    4: [("Jed", "Burke"), ("Kyle", "Jacob"), ("Stu", "Eric"),    ("Scott", "Jeff")],
+    5: [("Stu", "Jeff"),  ("Scott", "Burke"),("Jed", "Jacob"),   ("Kyle", "Eric")],
+    # Faldo Group 2 reads "??? v. Burke" on the sheet; Stu is the only player
+    # not otherwise scheduled that round, so the blank can only be him.
+    6: [("Jed", "Eric"),  ("Kyle", "Jeff"),  ("Stu", "Burke"),   ("Scott", "Jacob")],
+}
+
+
+def matches_for(rnd):
+    """Round's matchups as player ids, checked for a complete field."""
+    pairs = MATCHUPS[rnd]
+    used = [SHORT[n] for pair in pairs for n in pair]
+    assert len(used) == 8, "round %d has %d slots" % (rnd, len(used))
+    assert len(set(used)) == 8, "round %d repeats a player: %s" % (rnd, used)
+    return [{"a": SHORT[x], "b": SHORT[y]} for x, y in pairs]
 
 
 def initial_state():
@@ -39,7 +57,7 @@ def initial_state():
             "id": "r%d" % (i + 1), "n": i + 1,
             "day": day, "date": date, "club": club, "course": course,
             "times": times, "ctpHole": ctp, "ctp": "",
-            "matches": [{"a": pids[a], "b": pids[b]} for a, b in pairings(i)],
+            "matches": matches_for(i + 1),
             "gross": {}, "points": {},
         })
     # ahead of any state the previous build may have left behind
@@ -48,6 +66,9 @@ def initial_state():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--set-matchups", action="store_true",
+                    help="overwrite each round's matchups from the schedule sheet above. "
+                         "Off by default so a --state rebuild keeps matchups edited in the app.")
     ap.add_argument("--state", metavar="FILE",
                     help="embed this state JSON instead of a fresh tournament. Use to carry "
                          "the live artifact's data across a code change; rev is bumped so the "
@@ -64,6 +85,10 @@ def main():
     if opts.state:
         data = json.load(open(opts.state, encoding="utf-8"))
         data["rev"] = int(data.get("rev", 0)) + 1
+        if opts.set_matchups:
+            for rd in data["rounds"]:
+                rd["matches"] = matches_for(rd["n"])
+            print("applied the schedule sheet's matchups to all %d rounds" % len(data["rounds"]))
         print("embedding %s (rev %d, %d players)" % (opts.state, data["rev"], len(data["players"])))
     else:
         data = initial_state()

@@ -156,7 +156,12 @@ table.board .tot{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size
 .rnd-t span{font-size:.73rem;color:var(--ink3)}
 
 /* match block + points entry */
-.mblk{margin:10px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--raise);overflow:hidden}
+.grpbar{display:flex;align-items:center;gap:8px;padding:11px 13px 1px;
+  font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--ink3)}
+.grpbar b{color:var(--ink2)}
+.grpbar span{font-family:"IBM Plex Mono",monospace;letter-spacing:0;text-transform:none;font-size:.68rem}
+.grpbar i{flex:1;height:1px;background:var(--line-soft)}
+.mblk{margin:8px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--raise);overflow:hidden}
 .mblk-h{display:grid;grid-template-columns:1fr 3.5rem 3.5rem;gap:8px;align-items:center;
   padding:6px 10px;background:var(--surface2);border-bottom:1px solid var(--line)}
 .mblk-h .ttl{display:flex;align-items:center;gap:7px;min-width:0;
@@ -441,6 +446,11 @@ function viewRounds(){
     r.matches.forEach(function(m,mi){
       var res=matchResult(r,m);
       var badge = res==="tie" ? "Tied" : res ? esc(pname(res==="a"?m.a:m.b).split(" ")[0])+" won" : "";
+      if(mi===0||mi===2){
+        var gi=mi===0?0:1;
+        h+='<div class="grpbar"><b>Group '+(gi+1)+'</b>'+
+           (r.times[gi]?'<span>'+esc(r.times[gi])+'</span>':'')+'<i></i></div>';
+      }
       h+='<div class="mblk"><div class="mblk-h"><span class="ttl">Match '+(mi+1)+
         (badge?'<em>'+badge+'</em>':'')+'</span>'+
         (mi===0?'<span class="lbl">Gross</span><span class="lbl">Pts</span>':'<span></span><span></span>')+

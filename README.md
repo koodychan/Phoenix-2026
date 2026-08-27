@@ -30,10 +30,15 @@ maximum is flagged in red but still accepted; nothing is truncated.
 - **Standings** — running points by round, total, and total gross. Rounds with
   nothing entered read `—` rather than 0.
 - **Rules** — format, points table, local rules, pace of play, prizes, CTP holes.
-- **Setup** — player names, matchups per round, CTP hole. Matchups are seeded
-  with a round-robin so nobody repeats an opponent across the six rounds. Each
-  round warns if a player lands in two matches or none, which is easy to do
-  halfway through re-pairing a round.
+- **Setup** — player names, matchups per round, CTP hole. Each round warns if a
+  player lands in two matches or none, which is easy to do halfway through
+  re-pairing a round.
+
+Matchups come from the group's own schedule sheet (`MATCHUPS` in `build.py`),
+which is a 6-of-7 round robin: 24 distinct pairings, no repeats, every player
+facing six different opponents. Within a round the first two matches are Group 1
+(earlier tee time) and the last two are Group 2, and the Rounds tab labels them
+with the tee time.
 
 Two players sharing a name are flagged in Setup: standings track each slot
 separately, so duplicates split a player's points across two rows.
@@ -49,7 +54,13 @@ hard-coded offsets.
 ```
 python3 build.py                          # fresh tournament
 python3 build.py --state live_state.json  # keep the live artifact's data
+python3 build.py --state live.json --set-matchups   # also reapply the sheet
 ```
+
+`--set-matchups` overwrites every round's pairings from the schedule sheet. It
+is off by default so a routine `--state` rebuild keeps matchups edited in the
+app. `matches_for()` asserts each round fields all eight players exactly once,
+so a typo in the table fails the build rather than reaching the group.
 
 Republishing over a live artifact replaces its embedded state, so before
 shipping a code change pull the current state out of the published page
