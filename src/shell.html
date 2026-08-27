@@ -264,6 +264,10 @@ select.t{-webkit-appearance:none;appearance:none;background-image:linear-gradien
 "use strict";
 
 var ST=null, BASE=null, PEND=new Map(), CAP=null, READONLY=false, NOCAP=false, FILES=true, saveTimer=null;
+/* Where state is kept. "artifact" = published Claude artifact; "http" = this app
+   served from its own domain, talking to /api. Decided at boot. */
+var MODE="none", AUTHPW="";
+try{ AUTHPW = localStorage.getItem("pga.pw") || ""; }catch(e){}
 var UI={tab:"rounds"};
 
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
@@ -341,7 +345,9 @@ function goReadonly(){
   render();
 }
 function doSave(){
-  if(READONLY||!CAP||PEND.size===0) return;
+  if(READONLY||PEND.size===0) return;
+  if(MODE==="http") return doSaveHttp();
+  if(!CAP) return;
   var next=buildNext();
   dot("saving");
   var attempt = FILES
@@ -358,6 +364,40 @@ function doSave(){
     if(code==="rate_limited"){ dot("dirty"); clearTimeout(saveTimer); saveTimer=setTimeout(doSave,6000); return; }
     dot("err"); clearTimeout(saveTimer); saveTimer=setTimeout(doSave,4000);
   });
+}
+
+/* Save through this app's own API. The password goes to the server, which
+   checks it in the database - the browser does not decide. */
+function doSaveHttp(){
+  var next=buildNext();
+  dot("saving");
+  fetch("/api/save",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({pw:AUTHPW, state:next, baseRev:num(BASE.rev)||0})
+  }).then(function(r){
+    if(r.status===409){                       /* someone saved first: re-read and replay */
+      dot("dirty"); httpLoad(function(){ scheduleSave(); }); return null;
+    }
+    if(r.status===403){ setUnlocked(false,null); dot("err"); render(); return null; }
+    if(!r.ok) throw new Error("save");
+    return r.json();
+  }).then(function(j){
+    if(!j) return;
+    next.rev=j.rev; BASE=next; PEND.clear(); savePend(); dot("ok");
+  }).catch(function(){
+    dot("err"); clearTimeout(saveTimer); saveTimer=setTimeout(doSave,5000);
+  });
+}
+function httpLoad(cb){
+  fetch("/api/state",{cache:"no-store"}).then(function(r){ return r.ok?r.json():null; })
+   .then(function(j){
+     if(j && j.state && j.state.players && j.state.players.length){
+       var st=j.state; st.rev=j.rev; ensureShape(st);
+       BASE=st; ST=clone(BASE); applyPend(); render();
+     }
+     if(cb) cb();
+   }).catch(function(){ if(cb) cb(); });
 }
 
 /* ============ chrome ============ */
@@ -519,13 +559,19 @@ function pwHash(str){
   for(var i=0;i<str.length;i++) h=((h*33)^str.charCodeAt(i))>>>0;
   return h.toString(36);
 }
-function setUnlocked(v){
+function setUnlocked(v,pw){
   UNLOCKED=v;
-  try{ if(v) localStorage.setItem("pga.setup","1"); else localStorage.removeItem("pga.setup"); }catch(e){}
+  if(v && pw!=null) AUTHPW=pw;
+  if(!v) AUTHPW="";
+  try{
+    if(v){ localStorage.setItem("pga.setup","1"); if(pw!=null) localStorage.setItem("pga.pw",pw); }
+    else { localStorage.removeItem("pga.setup"); localStorage.removeItem("pga.pw"); }
+  }catch(e){}
 }
 function tryUnlock(){
   var el=document.getElementById("pw"); if(!el) return;
-  if(pwHash(el.value.trim().toLowerCase())===SETUP_PW){ setUnlocked(true); render(); return; }
+  var typed=el.value.trim().toLowerCase();
+  if(pwHash(typed)===SETUP_PW){ setUnlocked(true,typed); render(); return; }
   var err=document.getElementById("pwerr");
   if(err) err.textContent="That is not the password.";
   el.value=""; el.focus();
@@ -534,7 +580,9 @@ function viewLock(){
   return '<div class="lock"><div class="ico"><svg viewBox="0 0 24 24">'+
     '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>'+
     '<h2>Setup is locked</h2>'+
-    '<p>Players, matchups and CTP holes sit behind the password so they are not changed by accident.</p>'+
+    '<p>'+(MODE==="http"
+      ? 'Entering scores and changing the setup both need the password. Everyone else can follow along.'
+      : 'Players, matchups and CTP holes sit behind the password so they are not changed by accident.')+'</p>'+
     '<div class="row"><input class="t" id="pw" type="password" placeholder="Password" '+
       'autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off">'+
       '<button class="btn" data-unlock="1">Unlock</button></div>'+
@@ -619,13 +667,18 @@ function render(){
   renderTabs(); renderLead();
   var v=document.getElementById("view"), h="";
   if(READONLY) h+='<div class="ro">This view is read-only &mdash; anything you type here will not be saved for the group.</div>';
-  else if(NOCAP) h+='<div class="ro">Live saving is off in this preview. Open the shared link to enter scores.</div>';
+  else if(NOCAP) h+='<div class="ro">Live saving is off in this preview.</div>';
+  else if(MODE==="http" && !UNLOCKED) h+='<div class="note">Following along. Scores are entered by the scorekeeper &mdash; '+
+    'the password unlocks it under <b>Setup</b>.</div>';
   if(UI.tab==="standings") h+=viewStandings();
   else if(UI.tab==="rounds") h+=viewRounds();
   else if(UI.tab==="rules") h+=viewRules();
   else h+=viewSetup();
   v.innerHTML=h;
   if(READONLY) v.querySelectorAll("input,select").forEach(function(el){ el.disabled=true; });
+  /* Without the password the server will refuse the write, so do not invite it. */
+  if(MODE==="http" && !UNLOCKED)
+    v.querySelectorAll("[data-p],[data-ctp]").forEach(function(el){ el.disabled=true; });
   var pw=document.getElementById("pw"); if(pw) pw.focus();
 }
 
@@ -634,7 +687,7 @@ document.addEventListener("click",function(ev){
   var t=ev.target.closest?ev.target.closest("[data-tab],[data-reset],[data-unlock],[data-lock]"):null;
   if(!t) return;
   if(t.hasAttribute("data-unlock")){ tryUnlock(); return; }
-  if(t.hasAttribute("data-lock")){ setUnlocked(false); render(); window.scrollTo(0,0); return; }
+  if(t.hasAttribute("data-lock")){ setUnlocked(false,null); render(); window.scrollTo(0,0); return; }
   if(t.hasAttribute("data-tab")){ UI.tab=t.getAttribute("data-tab"); saveUI(); render(); window.scrollTo(0,0); }
   else if(t.hasAttribute("data-reset")){
     if(!window.confirm("Clear every point total? This cannot be undone.")) return;
@@ -742,18 +795,36 @@ BASE=readEmbedded()||{players:[],rounds:[]}; ensureShape(BASE);
 ST=clone(BASE); applyPend();
 render();
 
-fetch("data/state.json",{cache:"no-store"}).then(function(res){ return res.ok?res.json():null; })
- .then(function(j){
-   if(j && num(j.rev)>num(BASE.rev)){ ensureShape(j); BASE=j; ST=clone(BASE); applyPend(); render(); }
- }).catch(function(){}).then(function(){ reconcile(); });
+function startArtifact(cap){
+  CAP=cap; MODE="artifact";
+  fetch("data/state.json",{cache:"no-store"}).then(function(res){ return res.ok?res.json():null; })
+   .then(function(j){
+     if(j && num(j.rev)>num(BASE.rev)){ ensureShape(j); BASE=j; ST=clone(BASE); applyPend(); render(); }
+   }).catch(function(){}).then(function(){ render(); reconcile(); });
+}
+/* Served from our own domain: state lives in the database behind /api. */
+function startHttp(){
+  fetch("/api/state",{cache:"no-store"}).then(function(r){
+    if(!r.ok) throw new Error("no api");
+    return r.json();
+  }).then(function(j){
+    MODE="http"; NOCAP=false;
+    if(j && j.state && j.state.players && j.state.players.length){
+      var st=j.state; st.rev=num(j.rev)||0; ensureShape(st);
+      BASE=st; ST=clone(BASE); applyPend();
+    }else{
+      BASE.rev=num(j&&j.rev)||0;      /* empty row: keep the roster built into the page */
+      ST=clone(BASE); applyPend();
+    }
+    render(); reconcile();
+  }).catch(function(){ MODE="none"; NOCAP=true; render(); });
+}
 
 if(window.claude && window.claude.use){
-  window.claude.use("artifact").then(function(cap){
-    CAP=cap;
-    if(!cap){ NOCAP=true; render(); return; }
-    if(PEND.size>0) scheduleSave();
-  }).catch(function(){ NOCAP=true; render(); });
-}else{ NOCAP=true; }
+  window.claude.use("artifact")
+    .then(function(cap){ if(cap) startArtifact(cap); else startHttp(); })
+    .catch(function(){ startHttp(); });
+}else{ startHttp(); }
 
 window.addEventListener("beforeunload",function(){ savePend(); saveUI(); });
 })();
